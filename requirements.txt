@@ -1,0 +1,10 @@
+$pip install torch==2.8.0
+$pip install torchaudio==2.8.0
+$pip install torchvision==0.23.0
+$pip install --upgrade transformers
+$pip install orjson == 3.11.4
+$pip install wandb == 0.23.0
+$pip install scipy == 1.16.3
+$pip install tqdm == 4.67.1
+
+$pip install flash-attn --no-build-isolation #--no-cache-dir
