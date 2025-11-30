@@ -1,0 +1,33 @@
+data:
+  text_dir: data/dataset
+  processed_dir: data/processed
+  sts_train: data/sts/sts-train.tsv
+  sts_dev: data/sts/sts-dev.tsv
+
+model:
+  block_size: 2048
+  stride: 256
+  model_type: gpt2
+  config:
+    n_embd: 768
+    n_layer: 12
+    n_head: 12
+    resid_pdrop: 0.1
+    embd_pdrop: 0.1
+    attn_pdrop: 0.1
+
+training:
+  device: cuda
+  total_steps: 50000
+  grad_accum_steps: 64
+  batch_size_per_accum: 512
+  lr: 3e-4
+  weight_decay: 0.01
+  scheduler:
+    type: CosineAnnealingLR
+    T_max: 50000
+    eta_min: 1e-6
+  checkpoint_dir: checkpoints
+  validation_interval: 200
+  finetune_epochs: 3
+  sts_lr: 2e-5

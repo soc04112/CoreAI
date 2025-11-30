@@ -1,7 +1,5 @@
-import os
-from tokenizers import Tokenizer, models, pre_tokenizers, trainers, decoders
-from transformers import PreTrainedTokenizerFast, AutoTokenizer
-import shutil
+from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
+from transformers import PreTrainedTokenizerFast
 
 train_data_filename = ""
 
@@ -43,8 +41,3 @@ hf_tokenizer.mask_token = "[MASK]"
 # tokenizer_config.json, special_tokens_map.json 파일 생성
 hf_tokenizer_dir = "./coreAI_tokenizer"
 hf_tokenizer.save_pretrained(hf_tokenizer_dir)
-
-# 저장된 경로에서 토크나이저 로드
-loaded_hf_tokenizer = AutoTokenizer.from_pretrained(hf_tokenizer_dir)
-
-loaded_hf_tokenizer.tokenize(text)
