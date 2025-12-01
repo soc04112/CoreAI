@@ -1,6 +1,8 @@
 data:
   text_dir: data/dataset
+  model_dir: data/model
   processed_dir: data/processed
+  tokenizer_dir: data/tokenizer
   sts_train: data/sts/sts-train.tsv
   sts_dev: data/sts/sts-dev.tsv
 
@@ -20,7 +22,7 @@ training:
   device: cuda
   total_steps: 50000
   grad_accum_steps: 64
-  batch_size_per_accum: 512
+  batch_size_per_accum: 256
   lr: 3e-4
   weight_decay: 0.01
   scheduler:

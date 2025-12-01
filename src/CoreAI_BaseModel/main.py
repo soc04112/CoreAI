@@ -3,12 +3,11 @@ import os
 import torch
 import wandb
 import yaml
-from torch.cuda.amp import GradScaler, autocast
+# from torch.cuda.amp import GradScaler, autocast
 from torch.optim import Adafactor
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
-from transformers import (AutoModelForCausalLM, GPT2Config,
-                          PreTrainedTokenizerFast)
+from transformers import AutoModelForCausalLM, PreTrainedTokenizerFast
 
 from load_datasets import STSDataset, JsonlTextDataset
 from trainer import finetune_and_evaluate_sts
@@ -19,34 +18,24 @@ from utils import (find_latest_checkpoint, print_model_info,
 def load_config(path="./configs/configs.yaml"):
     return yaml.safe_load(open(path, "r"))
 
-def build_tokenizer(model_type):
-    return PreTrainedTokenizerFast.from_pretrained(f"./data/tokenizer")
+def build_tokenizer(tokenizer_dir):
+    return PreTrainedTokenizerFast.from_pretrained(tokenizer_dir)
 
-def build_model(cfg, tokenizer, vocab_size, device):
-    bos_id = tokenizer.bos_token_id
-    eos_id = tokenizer.eos_token_id
-    pad_id = tokenizer.pad_token_id
-    unk_id = tokenizer.unk_token_id
-
-    config = GPT2Config(
-        vocab_size=vocab_size, 
-        **cfg["config"],
-        bos_token_id="[BOS]",
-        eos_token_id="[EOS]",
-        pad_token_id="[PAD]",
-        unk_token_id="[UNK]",
-    )
-
-    model = AutoModelForCausalLM.from_config(config, attn_implementation="flash_attention")
-    model = model.to(device)
-    print(model)
+def build_model(model_dir, device):
+ 
+    # Avoid requesting a hub-specific flash-attn kernel on Windows/local dev environments.
+    # Use the default/torch attention implementation for compatibility.
+    # Use the eager (PyTorch-native) attention implementation which is broadly compatible
+    # and avoids requiring external hub kernels on local/Windows environments.
+    model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto")
     return model.to(device)
 
 def main():
 
     cfg = load_config()
-    device = torch.device(cfg["training"]["device"])
-    tokenizer = build_tokenizer(cfg["model"]["model_type"])
+    # device = torch.device(cfg["training"]["device"])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    tokenizer = build_tokenizer(cfg["data"]["tokenizer_dir"])
     per_device_batch_size = int(cfg["training"]["batch_size_per_accum"] / cfg["training"]["grad_accum_steps"] )
     
     #os.chdir("/content/drive/MyDrive/Colab Notebooks")
@@ -91,18 +80,16 @@ def main():
         run_sts_eval = False
 
     # 2) 모델 & optimizer & scheduler & scaler
-    model = build_model(cfg["model"], tokenizer, tokenizer.vocab_size, device)
+    model = build_model(cfg["data"]["model_dir"], device)
     model.resize_token_embeddings(len(tokenizer))
     optimizer = Adafactor(
         model.parameters(), 
-        lr=cfg["training"]["lr"], 
-        weight_decay=cfg["training"]["weight_decay"],
+        lr=float(cfg["training"]["lr"]), 
+        weight_decay=float(cfg["training"]["weight_decay"]),
     )
-    
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=cfg["training"]["scheduler"]["T_max"], eta_min=cfg["training"]["scheduler"]["eta_min"]
     )
-    scaler = GradScaler()
 
     # 체크포인트 복원 시도
     ckpt_dir = cfg["training"]["checkpoint_dir"]
@@ -111,9 +98,12 @@ def main():
         print(f"체크포인트를 찾아 해당 부분부터 학습을 시작합니다. {latest_ckpt} (step={last_step}) …")
         ckpt = torch.load(latest_ckpt, map_location=device)
         model.load_state_dict(ckpt["model"])
-        optimizer.load_state_dict(ckpt["optimizer"])
-        scheduler.load_state_dict(ckpt["scheduler"])
         global_step = ckpt["step"]
+        if hasattr(scheduler, 'last_epoch'):
+            scheduler.last_epoch = global_step - 1
+        else:
+            for _ in range(global_step):
+                scheduler.step()
     else:
         print("체크포인트를 찾지 못하여 처음부터 학습을 시작합니다.")
         global_step = 0
@@ -123,7 +113,8 @@ def main():
     wandb.init(
         project="CoreAI_pretrained",           # W&B 웹에서 만들 프로젝트 이름
         name=f"run-{os.getpid()}",            # (옵션) 실험 이름
-        config=cfg["training"]
+        config=cfg["training"],
+        dir="./data"
     )
     print_model_info(model)
     wandb.watch(model, log="all", log_freq=100)
@@ -132,10 +123,10 @@ def main():
     register_signal_handlers(ckpt_dir, model, optimizer, scheduler, lambda: global_step)
 
     # 4) 학습 루프
-    grad_accum_steps = cfg["training"]["grad_accum_steps"]
-    validation_interval = cfg["training"]["validation_interval"]
-    total_steps = cfg["training"]["total_steps"]
-    max_grad_norm = cfg["training"]["max_grad_norm"]
+    grad_accum_steps = int(cfg["training"]["grad_accum_steps"])
+    validation_interval = int(cfg["training"]["validation_interval"])
+    total_steps = int(cfg["training"]["total_steps"])
+    max_grad_norm = float(cfg["training"].get("max_grad_norm", 1.0))
 
     model.train()
     register_signal_handlers(ckpt_dir, model, optimizer, scheduler, get_step_fn=lambda: global_step)
@@ -145,17 +136,12 @@ def main():
             input_ids = batch["input_ids"].to(device)
             labels    = batch["labels"].to(device)
 
-            with autocast():
-                outputs = model(input_ids=input_ids, labels=labels)
-                loss = outputs.loss / grad_accum_steps
-
-            scaler.scale(loss).backward()
+            outputs = model(input_ids=input_ids, labels=labels)
+            loss = outputs.loss / grad_accum_steps
+            loss.backward()
 
             if (step + 1) % grad_accum_steps == 0:
-                scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
-                scaler.step(optimizer)
-                scaler.update()
                 optimizer.zero_grad()
                 scheduler.step()
 
@@ -171,10 +157,9 @@ def main():
                             val_input_ids = val_batch["input_ids"].to(device)
                             val_labels    = val_batch["labels"].to(device)
 
-                            with autocast():
-                                val_outputs = model(input_ids=val_input_ids, labels=val_labels)
-                                total_val_loss += val_outputs.loss.item()
-                                num_val_batches += 1
+                            val_outputs = model(input_ids=val_input_ids, labels=val_labels)
+                            total_val_loss += val_outputs.loss.item()
+                            num_val_batches += 1
 
                     avg_val_loss = total_val_loss / num_val_batches
                     perplexity = torch.exp(torch.tensor(avg_val_loss)).item()

@@ -10,43 +10,43 @@ from transformers import PreTrainedTokenizerFast
 
 
 class STSDataset(Dataset):
-  def __init__(self, file_path, tokenizer, max_len=128):
-    self.tokenizer = tokenizer
-    self.max_len = max_len
+    def __init__(self, file_path, tokenizer, max_len=128):
+        self.tokenizer = tokenizer
+        self.max_len = max_len
 
-    self.data = pd.read_csv(file_path, sep='\t', quoting=3, dtype=str, keep_default_na=False).fillna('') #quoting=3은 따옴표 무시
+        self.data = pd.read_csv(file_path, sep='\t', quoting=3, dtype=str, keep_default_na=False).fillna('') #quoting=3은 따옴표 무시
 
-  def __len__(self):
-    return len(self.data)
+    def __len__(self):
+        return len(self.data)
 
-  def __getitem__(self, idx):
-    row = self.data.iloc[idx]
-    sentence1 = str(row.sentence1)
-    sentence2= str(row.sentence2)
-    score = float(row.score)
+    def __getitem__(self, idx):
+        row = self.data.iloc[idx]
+        sentence1 = str(row.sentence1)
+        sentence2= str(row.sentence2)
+        score = float(row.score)
 
-    try:
-        inputs1 = self.tokenizer(sentence1, return_tensors='pt', max_length=self.max_len, padding='max_length', truncation=True)
-    except Exception as e:
-        print(f"[STS ERROR] sentence1 idx={idx}: {repr(sentence1)}")
-        print("Exception:", e)
-        # 건너뛰려면 리턴 None 혹은 임의값, 혹은 exception 재발생
-        return None
+        try:
+            inputs1 = self.tokenizer(sentence1, return_tensors='pt', max_length=self.max_len, padding='max_length', truncation=True)
+        except Exception as e:
+            print(f"[STS ERROR] sentence1 idx={idx}: {repr(sentence1)}")
+            print("Exception:", e)
+            # 건너뛰려면 리턴 None 혹은 임의값, 혹은 exception 재발생
+            return None
 
-    try:
-        inputs2 = self.tokenizer(sentence2, return_tensors='pt', max_length=self.max_len, padding='max_length', truncation=True)
-    except Exception as e:
-        print(f"[STS ERROR] sentence2 idx={idx}: {repr(sentence2)}")
-        print("Exception:", e)
-        return None
+        try:
+            inputs2 = self.tokenizer(sentence2, return_tensors='pt', max_length=self.max_len, padding='max_length', truncation=True)
+        except Exception as e:
+            print(f"[STS ERROR] sentence2 idx={idx}: {repr(sentence2)}")
+            print("Exception:", e)
+            return None
 
-    return {
-        'input_ids1': inputs1['input_ids'].squeeze(0),
-        'attention_mask1': inputs1['attention_mask'].squeeze(0),
-        'input_ids2': inputs2['input_ids'].squeeze(0),
-        'attention_mask2': inputs2['attention_mask'].squeeze(0),
-        'score': torch.tensor(score, dtype=torch.float)
-    }
+        return {
+            'input_ids1': inputs1['input_ids'].squeeze(0),
+            'attention_mask1': inputs1['attention_mask'].squeeze(0),
+            'input_ids2': inputs2['input_ids'].squeeze(0),
+            'attention_mask2': inputs2['attention_mask'].squeeze(0),
+            'score': torch.tensor(score, dtype=torch.float)
+        }
 
 class JsonlTextDataset(Dataset):
     def __init__(

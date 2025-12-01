@@ -106,8 +106,8 @@ def print_model_info(model):
     mem_fp32 = (total_params * 4) / (1024 ** 2)
     mem_fp16 = mem_fp32 / 2
     print(f"예상 메모리:")
-    print(f"  • Float32: {mem_fp32:.2f} MB ({mem_fp32/1024:.2f} GB)")
-    print(f"  • Float16: {mem_fp16:.2f} MB ({mem_fp16/1024:.2f} GB)")
+    print(f"  - Float32: {mem_fp32:.2f} MB ({mem_fp32/1024:.2f} GB)")
+    print(f"  - Float16: {mem_fp16:.2f} MB ({mem_fp16/1024:.2f} GB)")
 
     # ============================================================================
     # 4. 모델 구조 계층 분석
@@ -118,7 +118,7 @@ def print_model_info(model):
     print("주요 컴포넌트:")
     for name, module in model.named_children():
         module_params = sum(p.numel() for p in module.parameters())
-        print(f"  • {name}: {module_params:,}개 파라미터")
+        print(f"  - {name}: {module_params:,}개 파라미터")
 
 
     # ============================================================================
