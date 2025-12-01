@@ -36,28 +36,28 @@
 
 ## 3. 파일/디렉터리 구조
 
-CoreAI_BaseModel/
-├── configs/
-│   └── configs.yaml              # 데이터 경로, 모델/학습 설정
-├── data/                         # STS 데이터, 원본 jsonl 등
-│   ├── dataset                   # 원본 jsonl 파일 (법률 데이터 및 한국어 데이터)
-│   ├── sts                       # STS 데이터
-│   ├── processed                 # 전처리 데이터
-│   ├── model                     # 제작된 모델
-│   ├── tokenizer                 # 제작된 토크나이저
-│   └── wandb                     # wandb 임시 파일
-├── src/
-│   ├── CoreAI_BaseModel/
-│   ├──   ├── datasets.py         # JsonlTextDataset, STSDataset
-│   ├──   ├── models.py           # STSModel 정의
-│   ├──   ├── trainer.py          # pretrain/finetune 루프
-│   ├──   ├── utils.py            # checkpoint, 시그널핸들러, 모델 통계
-│   └──   └── main.py             # 전체 파이프라인 엔트리포인트
-│   ├── mk_tokenizer/
-│   └──   └── make_tokenizers.py  # 토크나이저 제작
-├── notebooks/
-│   ├── DIYModel.ipynb            # 모델 생성용 파일
-│   └── pretrainined.ipynb        # Colab 테스트용 파일
-├── checkpoints/                  # 자동 생성되는 체크포인트 폴더
-├── requirements.txt              # 의존성 리스트
-└── README.md
+- CoreAI_BaseModel/
+- ├── configs/
+- │   └── configs.yaml              # 데이터 경로, 모델/학습 설정
+- ├── data/                         # STS 데이터, 원본 jsonl 등
+- │   ├── dataset                   # 원본 jsonl 파일 (법률 데이터 및 한국어 데이터)
+- │   ├── sts                       # STS 데이터
+- │   ├── processed                 # 전처리 데이터
+- │   ├── model                     # 제작된 모델
+- │   ├── tokenizer                 # 제작된 토크나이저
+- │   └── wandb                     # wandb 임시 파일
+- ├── src/
+- │   ├── CoreAI_BaseModel/
+- │   ├──   ├── datasets.py         # JsonlTextDataset, STSDataset
+- │   ├──   ├── models.py           # STSModel 정의
+- │   ├──   ├── trainer.py          # pretrain/finetune 루프
+- │   ├──   ├── utils.py            # checkpoint, 시그널핸들러, 모델 통계
+- │   └──   └── main.py             # 전체 파이프라인 엔트리포인트
+- │   ├── mk_tokenizer/
+- │   └──   └── make_tokenizers.py  # 토크나이저 제작
+- ├── notebooks/
+- │   ├── DIYModel.ipynb            # 모델 생성용 파일
+- │   └── pretrainined.ipynb        # Colab 테스트용 파일
+- ├── checkpoints/                  # 자동 생성되는 체크포인트 폴더
+- ├── requirements.txt              # 의존성 리스트
+- └── README.md
