@@ -8,7 +8,7 @@
 - Gradient Accumulation, Adafactor 옵티마이저, Cosine LR 스케줄러를 적용해  
 - 사전학습(pre-training)을 수행하며
 - Validation Loss 및 Perplexity로 평가하여 법률에 특화된 LLM 기본 모델 구축.
-- - 해당 프로젝트로 LLM 기본 모델 구축에 대한 이해 및 경험을 쌓는 것을 목표로 진행햐였습니다.
+- 해당 프로젝트로 LLM 기본 모델 구축에 대한 이해 및 경험을 쌓는 것을 목표로 진행하였습니다.
 
 ## 2. 주요 기능
 
